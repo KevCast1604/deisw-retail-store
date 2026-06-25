@@ -1,11 +1,11 @@
 pipeline {
     agent any
 
-    tools {
-        jdk 'JDK26'
-    }
-
     environment {
+        // Configuración manual y persistente de Java 26 en el contenedor
+        JAVA_HOME = '/var/jenkins_home/jdk26'
+        PATH = "/var/jenkins_home/jdk26/bin:${env.PATH}"
+
         // Docker Hub configuration
         DOCKER_USER = 'kevcast1604'
         DOCKER_IMAGE = 'retail-store-u202318814'
@@ -16,6 +16,23 @@ pipeline {
     }
 
     stages {
+        stage('Prepare JDK 26') {
+            steps {
+                echo 'Checking and preparing JDK 26 environment...'
+                sh '''
+                if [ ! -d "/var/jenkins_home/jdk26" ] || [ ! -f "/var/jenkins_home/jdk26/bin/java" ]; then
+                    echo "JDK 26 not found or incomplete. Downloading Eclipse Temurin JDK 26..."
+                    rm -rf /var/jenkins_home/jdk26
+                    mkdir -p /var/jenkins_home/jdk26
+                    curl -L "https://api.adoptium.net/v3/binary/latest/26/ga/linux/x64/jdk/hotspot/normal/eclipse" | tar -xz -C /var/jenkins_home/jdk26 --strip-components=1
+                    echo "JDK 26 successfully installed."
+                else
+                    echo "JDK 26 is already present in /var/jenkins_home/jdk26."
+                fi
+                '''
+            }
+        }
+
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
