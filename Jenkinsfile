@@ -1,14 +1,18 @@
 pipeline {
     agent any
 
+    tools {
+        jdk 'JDK26'
+    }
+
     environment {
         // Docker Hub configuration
         DOCKER_USER = 'kevcast1604'
         DOCKER_IMAGE = 'retail-store-u202318814'
-        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
+        DOCKER_CREDENTIALS_ID = 'DOCKER_HUB_CREDENTIALS'
         
         // SonarQube Server configuration name in Jenkins
-        SONAR_SERVER_NAME = 'SonarQube'
+        SONAR_SERVER_NAME = 'MiSonarServer'
     }
 
     stages {
@@ -46,7 +50,6 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 echo 'Checking SonarQube Quality Gate...'
-                // If you do not have webhooks configured in SonarQube, you can comment out this stage
                 timeout(time: 10, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
