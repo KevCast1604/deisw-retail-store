@@ -20,14 +20,35 @@ pipeline {
             steps {
                 echo 'Checking and preparing JDK 26 environment...'
                 sh '''
+                # Detectar la arquitectura nativa del contenedor (x86_64 o aarch64)
+                ARCH=$(uname -m)
+                echo "Detected container architecture: $ARCH"
+                
+                if [ "$ARCH" = "x86_64" ]; then
+                    JDK_ARCH="x64"
+                elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+                    JDK_ARCH="aarch64"
+                else
+                    JDK_ARCH="x64"
+                fi
+                
+                # Verificar si el JDK existente es funcional para esta arquitectura
+                if [ -f "/var/jenkins_home/jdk26/bin/java" ]; then
+                    if ! /var/jenkins_home/jdk26/bin/java -version > /dev/null 2>&1; then
+                        echo "Cached JDK 26 is incompatible with $ARCH. Removing..."
+                        rm -rf /var/jenkins_home/jdk26
+                    fi
+                fi
+                
+                # Instalar si no existe o fue removido por incompatibilidad
                 if [ ! -d "/var/jenkins_home/jdk26" ] || [ ! -f "/var/jenkins_home/jdk26/bin/java" ]; then
-                    echo "JDK 26 not found or incomplete. Downloading Eclipse Temurin JDK 26..."
+                    echo "JDK 26 not found or incomplete. Downloading Eclipse Temurin JDK 26 for $JDK_ARCH..."
                     rm -rf /var/jenkins_home/jdk26
                     mkdir -p /var/jenkins_home/jdk26
-                    curl -L "https://api.adoptium.net/v3/binary/latest/26/ga/linux/x64/jdk/hotspot/normal/eclipse" | tar -xz -C /var/jenkins_home/jdk26 --strip-components=1
+                    curl -L "https://api.adoptium.net/v3/binary/latest/26/ga/linux/${JDK_ARCH}/jdk/hotspot/normal/eclipse" | tar -xz -C /var/jenkins_home/jdk26 --strip-components=1
                     echo "JDK 26 successfully installed."
                 else
-                    echo "JDK 26 is already present in /var/jenkins_home/jdk26."
+                    echo "JDK 26 is already present and functional in /var/jenkins_home/jdk26."
                 fi
                 '''
             }
